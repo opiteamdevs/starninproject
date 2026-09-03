@@ -15,28 +15,24 @@ jobs:
       - name: Copiar repositório
         uses: actions/checkout@v4
 
-      - name: Gerar index.json diretamente no Workflow
+      - name: Gerar index.json com shell
         run: |
-          python3 -c '
-          import os, json
-          root_dir = "."
-          index_data = []
-          for root, dirs, files in os.walk(root_dir):
-              if ".git" in root or ".github" in root or ".starsnin" in root:
-                  continue
-              for file in files:
-                  if file.endswith(".json") and file != "index.json":
-                      path = os.path.join(root, file).replace("./", "")
-                      try:
-                          with open(path, "r", encoding="utf-8") as f:
-                              content = json.load(f)
-                              index_data.append({"path": path, "data": content})
-                      except:
-                          pass
+          echo "{" > index.json
+          echo "  \"Pages\": [" >> index.json
           
-          with open("index.json", "w", encoding="utf-8") as f:
-              json.dump({"Pages": index_data}, f, ensure_identical=False, indent=2)
-          '
+          first=true
+          for file in $(find . -name "*.json" ! -name "index.json" -not -path "*/.*" | sort); do
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo "," >> index.json
+            fi
+            echo "    \"$file\"" >> index.json
+          done
+          
+          echo "" >> index.json
+          echo "  ]" >> index.json
+          echo "}" >> index.json
 
       - name: Commitar alterações no índice
         uses: stefanzweifel/git-auto-commit-action@v5
