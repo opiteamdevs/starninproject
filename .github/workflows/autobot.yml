@@ -1,9 +1,9 @@
-name: Atualizar Index JSON
+name: Atualizar Index Starnin
 
 on:
   push:
     branches:
-      - main # ou master
+      - main
 
 permissions:
   contents: write
@@ -15,17 +15,32 @@ jobs:
       - name: Copiar repositório
         uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Gerar index.json diretamente no Workflow
+        run: |
+          python3 -c '
+          import os, json
+          root_dir = "."
+          index_data = []
+          for root, dirs, files in os.walk(root_dir):
+              if ".git" in root or ".github" in root or ".starsnin" in root:
+                  continue
+              for file in files:
+                  if file.endswith(".json") and file != "index.json":
+                      path = os.path.join(root, file).replace("./", "")
+                      try:
+                          with open(path, "r", encoding="utf-8") as f:
+                              content = json.load(f)
+                              index_data.append({"path": path, "data": content})
+                      except:
+                          pass
+          
+          with open("index.json", "w", encoding="utf-8") as f:
+              json.dump({"Pages": index_data}, f, ensure_identical=False, indent=2)
+          '
 
-      - name: Executar script de indexação
-        run: python .starsnin/auto/generate_structure.py
-
-      - name: Commitar alterações se houver mudanças
+      - name: Commitar alterações no índice
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-atualização do index.json [skip ci]"
+          commit_message: "Auto-atualização do index.json via workflow [skip ci]"
           file_pattern: "index.json"
           
