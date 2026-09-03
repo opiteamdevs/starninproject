@@ -1,0 +1,31 @@
+name: Atualizar Index JSON
+
+on:
+  push:
+    branches:
+      - main # ou master
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copiar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Executar script de indexação
+        run: python /.starsnin/auto/generate_index.py
+
+      - name: Commitar alterações se houver mudanças
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-atualização do index.json [skip ci]"
+          file_pattern: "index.json"
+          
