@@ -15,28 +15,42 @@ jobs:
       - name: Copiar repositório
         uses: actions/checkout@v4
 
-      - name: Gerar index.json com shell
+      - name: Verificar pastas, criar JSON vazio se faltar e gerar índice
         run: |
+          # 1. Varre o repositório em busca de pastas (ignorando .git, .github e .starsnin)
+          for dir in $(find . -type d -not -path '*/.*' -not -path '.'); do
+            # Se a pasta não tiver um arquivo .json dentro dela, cria um padrão vazio
+            if [ -z "$(find "$dir" -maxdepth 1 -name "*.json" -not -name "index.json")" ]; then
+              echo "Criando JSON padrão em: $dir"
+              echo '{' > "$dir/dados.json"
+              echo '  "Pages": []' >> "$dir/dados.json"
+              echo '}' >> "$dir/dados.json"
+            fi
+          done
+
+          # 2. Gera o index.json principal na raiz listando todos os JSONs encontrados
           echo "{" > index.json
           echo "  \"Pages\": [" >> index.json
           
           first=true
           for file in $(find . -name "*.json" ! -name "index.json" -not -path "*/.*" | sort); do
+            # Remove o './' inicial para o caminho ficar limpo
+            clean_path=$(echo "$file" | sed 's|^\./||')
             if [ "$first" = true ]; then
               first=false
             else
               echo "," >> index.json
             fi
-            echo "    \"$file\"" >> index.json
+            echo "    \"$clean_path\"" >> index.json
           done
           
           echo "" >> index.json
           echo "  ]" >> index.json
           echo "}" >> index.json
 
-      - name: Commitar alterações no índice
+      - name: Commitar alterações automáticas
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-atualização do index.json via workflow [skip ci]"
-          file_pattern: "index.json"
+          commit_message: "Auto-atualização: pastas e index.json sincronizados [skip ci]"
+          file_pattern: "*"
           
